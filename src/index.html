@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./output.css">
+    <title>Tailwind Group Chat</title>
+</head>
+<body class="bg-gray-100">
+    <div class="flex justify-center items-center h-screen">
+        <div class="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
+            <h2 class="text-2xl font-bold text-center text-rose-600 mb-4">Group Chat</h2>
+
+            <div class="mb-4">
+                <input id="username" type="text" placeholder="Enter your username" 
+                       class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500" />
+            </div>
+
+            
+            <div id="chat" class="h-64 overflow-y-auto border border-gray-200 p-4 rounded-lg mb-4 bg-gray-50">
+            </div>
+            <div class="flex space-x-2">
+                <input id="messageInput" type="text" placeholder="Type a message..." 
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-rose-500" />
+                <button id="sendBtn" class="bg-rose-600 text-white px-4 py-2 rounded-md hover:bg-emerald-600">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+      const socket = io();
+      
+      const chat = document.getElementById('chat');
+      const messageInput = document.getElementById('messageInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const usernameInput = document.getElementById('username');
+      
+      function displayMessage(username, message, isCurrentUser) {
+          const messageElement = document.createElement('div');
+          messageElement.classList.add('message', 'mb-3', 'px-4', 'py-2', 'rounded-md', 'inline-block');
+      
+          if (isCurrentUser) {
+              messageElement.classList.add('bg-blue-500', 'text-white', 'self-end');
+          } else {
+              messageElement.classList.add('bg-gray-200', 'text-black', 'self-start');
+          }
+      
+          messageElement.innerHTML =` <span class="font-semibold">${username}:</span> ${message}`;
+      
+          const messageWrapper = document.createElement('div');
+          messageWrapper.classList.add('flex', isCurrentUser ? 'justify-end' : 'justify-start');
+          messageWrapper.appendChild(messageElement);
+          chat.appendChild(messageWrapper);
+      
+          chat.scrollTop = chat.scrollHeight;
+      }
+      
+      sendBtn.addEventListener('click', () => {
+          const message = messageInput.value.trim();
+          const username = usernameInput.value.trim() || 'Anonymous';
+      
+          if (message) {
+              socket.emit('chatMessage', { username, message });
+              messageInput.value = ''; // Clear input
+          }
+      });
+      
+      socket.on('chatMessage', ({ username, message }) => {
+          const isCurrentUser = username === usernameInput.value.trim();
+          displayMessage(username, message, isCurrentUser);
+      });
+      
+      socket.on('chatFull', () => {
+          alert('Chat is full! Only two users are allowed.');
+      });
+      
+      socket.on('userConnected', (message) => {
+          displayMessage('System', message, false);
+      });
+      
+      socket.on('userDisconnected', (message) => {
+          displayMessage('System', message, false);
+      });
+    </script>
+</body>
+</html>
